@@ -76,6 +76,12 @@ open class ActionButton: NSObject {
     /// the float button's radius
     fileprivate let floatButtonRadius = 50
     
+    /// the float button's trailing padding
+    fileprivate let floatButtonTrailingPadding: CGFloat = 15
+    
+    /// the float button's bottom padding
+    fileprivate let floatButtonBottomPadding: CGFloat = 15
+    
     public init(attachedToView view: UIView, items: [ActionButtonItem]?) {
         super.init()
         
@@ -102,9 +108,13 @@ open class ActionButton: NSObject {
         self.parentView.addSubview(self.floatButton)
 
         self.contentView = UIView(frame: bounds)
-        self.blurVisualEffect = UIVisualEffectView(effect: UIBlurEffect(style: .extraLight))
+        self.contentView.backgroundColor = .red
+        self.parentView.backgroundColor = .yellow
+        self.blurVisualEffect = UIVisualEffectView(effect: UIBlurEffect(style: .dark))
         self.blurVisualEffect.frame = self.contentView.frame
         self.contentView.addSubview(self.blurVisualEffect)
+        self.contentView.translatesAutoresizingMaskIntoConstraints = false
+        self.blurVisualEffect.translatesAutoresizingMaskIntoConstraints = false
         
         let tap = UITapGestureRecognizer(target: self, action: #selector(ActionButton.backgroundTapped(_:)))
         self.contentView.addGestureRecognizer(tap)
@@ -141,10 +151,18 @@ open class ActionButton: NSObject {
         self.floatButton.addConstraints(width)
         self.floatButton.addConstraints(height)
         
-        let trailingSpacing = NSLayoutConstraint.constraints(withVisualFormat: "V:[floatButton]-15-|", options: NSLayoutConstraint.FormatOptions.alignAllCenterX, metrics: nil, views: views)
-        let bottomSpacing = NSLayoutConstraint.constraints(withVisualFormat: "H:[floatButton]-15-|", options: NSLayoutConstraint.FormatOptions.alignAllCenterX, metrics: nil, views: views)
-        self.parentView.addConstraints(trailingSpacing)
-        self.parentView.addConstraints(bottomSpacing)
+        //safeAreaLayoutGuide issue
+        if #available(iOS 11.0, *) {
+            let guide = self.parentView.safeAreaLayoutGuide
+            self.floatButton.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -(floatButtonTrailingPadding)).isActive = true
+            self.floatButton.bottomAnchor.constraint(equalTo: guide.bottomAnchor, constant: floatButtonBottomPadding).isActive = true
+        }
+        else {
+            let trailingSpacing = NSLayoutConstraint.constraints(withVisualFormat: "V:[floatButton]-\(floatButtonTrailingPadding)-|", options: NSLayoutConstraint.FormatOptions.alignAllCenterX, metrics: nil, views: views)
+            let bottomSpacing = NSLayoutConstraint.constraints(withVisualFormat: "H:[floatButton]-\(floatButtonBottomPadding)-|", options: NSLayoutConstraint.FormatOptions.alignAllCenterX, metrics: nil, views: views)
+            self.parentView.addConstraints(trailingSpacing)
+            self.parentView.addConstraints(bottomSpacing)
+        }
     }
     
     //MARK: - Button Actions Methods
@@ -187,6 +205,20 @@ open class ActionButton: NSObject {
                 item.view.removeFromSuperview()
                 
                 self.contentView.addSubview(item.view)
+                item.view.translatesAutoresizingMaskIntoConstraints = false
+                
+                if #available(iOS 11.0, *) {
+                    let guide = self.contentView.safeAreaLayoutGuide
+                    item.view.trailingAnchor.constraint(equalTo: guide.trailingAnchor, constant: -(floatButtonTrailingPadding)).isActive = true
+                    item.view.bottomAnchor.constraint(equalTo: guide.bottomAnchor, constant: floatButtonBottomPadding).isActive = true
+                }
+                else {
+                    item.view.trailingAnchor.constraint(equalTo: self.contentView.trailingAnchor, constant: -(floatButtonTrailingPadding)).isActive = true
+                    item.view.bottomAnchor.constraint(equalTo: self.contentView.bottomAnchor, constant: floatButtonBottomPadding).isActive = true
+                }
+                
+                item.view.widthAnchor.constraint(equalToConstant: 200).isActive = true
+                item.view.heightAnchor.constraint(equalToConstant: 35).isActive = true
             }
         }
     }
@@ -205,12 +237,12 @@ open class ActionButton: NSObject {
     }
     
     fileprivate func animateMenu() {
-        let rotation = self.active ? 0 : Double.pi / 4
+        let rotation = self.active ? 0 : CGFloat(Double.pi / 4)
         
         UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 1, initialSpringVelocity: 0.1, options: UIView.AnimationOptions.allowAnimatedContent, animations: {
             
             if self.floatButton.imageView?.image == nil {
-                self.floatButton.transform = CGAffineTransform(rotationAngle: CGFloat(rotation))
+                self.floatButton.transform = CGAffineTransform(rotationAngle: rotation)
             }
     
             self.showActive(false)
@@ -247,6 +279,16 @@ open class ActionButton: NSObject {
     
     fileprivate func showBlur() {
         self.parentView.insertSubview(self.contentView, belowSubview: self.floatButton)
+        
+        self.contentView.trailingAnchor.constraint(equalTo: self.parentView.trailingAnchor).isActive = true
+        self.contentView.bottomAnchor.constraint(equalTo: self.parentView.bottomAnchor).isActive = true
+        self.contentView.topAnchor.constraint(equalTo: self.parentView.topAnchor).isActive = true
+        self.contentView.leadingAnchor.constraint(equalTo: self.parentView.leadingAnchor).isActive = true
+        
+        self.blurVisualEffect.trailingAnchor.constraint(equalTo: self.contentView.trailingAnchor).isActive = true
+        self.blurVisualEffect.bottomAnchor.constraint(equalTo: self.contentView.bottomAnchor).isActive = true
+        self.blurVisualEffect.topAnchor.constraint(equalTo: self.contentView.topAnchor).isActive = true
+        self.blurVisualEffect.leadingAnchor.constraint(equalTo: self.contentView.leadingAnchor).isActive = true
     }
     
     fileprivate func hideBlur() {
